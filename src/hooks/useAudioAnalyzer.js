@@ -1,6 +1,8 @@
 import { useState, useRef, useCallback } from 'react'
 
-export default function useAudioAnalyzer() {
+// sensitivity: 1 = normal, 2 = 2x boost, etc. (how much louder = higher range).
+// smoothness: 0 = instant/jittery, 1 = very smooth/slow (reflects intonation, not rapid vibration).
+export default function useAudioAnalyzer(sensitivity = 1, smoothness = 0.7) {
   const [audioContext, setAudioContext] = useState(null)
   const [analyser, setAnalyser] = useState(null)
   const [audioSource, setAudioSource] = useState(null)
@@ -9,6 +11,13 @@ export default function useAudioAnalyzer() {
   
   const frequencyDataRef = useRef(null)
   const timeDomainDataRef = useRef(null)
+  const sensitivityRef = useRef(sensitivity)
+  sensitivityRef.current = sensitivity
+  const smoothnessRef = useRef(smoothness)
+  smoothnessRef.current = smoothness
+  // Smoothed values (float for EMA); init on first frame
+  const smoothedFrequencyRef = useRef(null)
+  const smoothedTimeDomainRef = useRef(null)
   
   // Create or get audio context
   const getOrCreateContext = useCallback(() => {
@@ -66,7 +75,7 @@ export default function useAudioAnalyzer() {
       
       const ctx = getOrCreateContext()
       
-      // Create analyser node
+      // Create analyser node (higher smoothing = less jitter in raw data; we add our own temporal smoothing)
       const analyserNode = ctx.createAnalyser()
       analyserNode.fftSize = 256
       analyserNode.smoothingTimeConstant = 0.7
@@ -102,27 +111,60 @@ export default function useAudioAnalyzer() {
     setAnalyser(null)
   }, [micStream])
   
-  // Get frequency data (for bars visualization)
+  // Alpha for EMA: smoothness 0 = reactive (alpha ~0.3), smoothness 1 = very smooth (alpha ~0.02)
+  const getAlpha = useCallback(() => {
+    const sm = Math.max(0, Math.min(1, smoothnessRef.current))
+    return 0.02 + (1 - sm) * 0.28
+  }, [])
+
+  // Get frequency data (for bars visualization): sensitivity = range (louder = higher), smoothness = slower/smoother movement
   const getFrequencyData = useCallback(() => {
     if (!analyser || !frequencyDataRef.current) return new Uint8Array(128)
     analyser.getByteFrequencyData(frequencyDataRef.current)
-    return frequencyDataRef.current
-  }, [analyser])
+    const s = Math.max(0.1, sensitivityRef.current)
+    const len = frequencyDataRef.current.length
+    if (!smoothedFrequencyRef.current || smoothedFrequencyRef.current.length !== len) {
+      smoothedFrequencyRef.current = new Float32Array(len)
+    }
+    const smoothed = smoothedFrequencyRef.current
+    const alpha = getAlpha()
+    const out = new Uint8Array(len)
+    for (let i = 0; i < len; i++) {
+      const rawScaled = Math.min(255, frequencyDataRef.current[i] * s)
+      smoothed[i] = smoothed[i] * (1 - alpha) + rawScaled * alpha
+      out[i] = Math.round(Math.max(0, Math.min(255, smoothed[i])))
+    }
+    return out
+  }, [analyser, getAlpha])
   
-  // Get time domain data (for waveform visualization)
+  // Get time domain data (for waveform): sensitivity = range, smoothness = slower/smoother movement
   const getTimeDomainData = useCallback(() => {
     if (!analyser || !timeDomainDataRef.current) return new Uint8Array(256)
     analyser.getByteTimeDomainData(timeDomainDataRef.current)
-    return timeDomainDataRef.current
-  }, [analyser])
+    const s = Math.max(0.1, sensitivityRef.current)
+    const len = timeDomainDataRef.current.length
+    const center = 128
+    if (!smoothedTimeDomainRef.current || smoothedTimeDomainRef.current.length !== len) {
+      smoothedTimeDomainRef.current = new Float32Array(len)
+    }
+    const smoothed = smoothedTimeDomainRef.current
+    const alpha = getAlpha()
+    const out = new Uint8Array(len)
+    for (let i = 0; i < len; i++) {
+      const v = timeDomainDataRef.current[i]
+      const rawScaled = Math.max(0, Math.min(255, (v - center) * s + center))
+      smoothed[i] = smoothed[i] * (1 - alpha) + rawScaled * alpha
+      out[i] = Math.round(Math.max(0, Math.min(255, smoothed[i])))
+    }
+    return out
+  }, [analyser, getAlpha])
   
-  // Get average amplitude (for pulsing effects)
+  // Get average amplitude (for pulsing effects); sensitivity already applied in getFrequencyData
   const getAverageAmplitude = useCallback(() => {
     const frequencyData = getFrequencyData()
     if (!frequencyData.length) return 0
-    
     const sum = frequencyData.reduce((acc, val) => acc + val, 0)
-    return sum / frequencyData.length / 255 // Normalize to 0-1
+    return Math.min(1, sum / frequencyData.length / 255)
   }, [getFrequencyData])
   
   return {

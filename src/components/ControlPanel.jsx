@@ -192,6 +192,22 @@ export default function ControlPanel({
             min={50}
             max={150}
           />
+          <Slider
+            label="Input sensitivity (range)"
+            value={typeof settings.sensitivity === 'number' ? settings.sensitivity : 2}
+            onChange={(v) => updateSettings('sensitivity', v)}
+            min={0.5}
+            max={4}
+            step={0.5}
+          />
+          <Slider
+            label="Chart smoothness"
+            value={typeof settings.smoothness === 'number' ? settings.smoothness : 0.7}
+            onChange={(v) => updateSettings('smoothness', v)}
+            min={0}
+            max={1}
+            step={0.1}
+          />
           <Select
             label="Position"
             value={settings.visualizerPosition}
@@ -454,19 +470,22 @@ function ColorPicker({ label, value, onChange }) {
   )
 }
 
-function Slider({ label, value, onChange, min = 0, max = 100 }) {
+function Slider({ label, value, onChange, min = 0, max = 100, step = 1 }) {
+  const parse = step >= 1 ? (v) => parseInt(v, 10) : (v) => parseFloat(v)
+  const displayValue = typeof value === 'number' && step < 1 ? value.toFixed(1) : value
   return (
     <div>
       <div className="flex justify-between mb-1">
         <label className="text-sm text-slate-300">{label}</label>
-        <span className="text-sm text-violet-400">{value}</span>
+        <span className="text-sm text-violet-400">{displayValue}</span>
       </div>
       <input
         type="range"
         min={min}
         max={max}
+        step={step}
         value={value}
-        onChange={(e) => onChange(parseInt(e.target.value))}
+        onChange={(e) => onChange(parse(e.target.value))}
         className="w-full h-2 bg-[#1a1a1a] rounded-lg appearance-none cursor-pointer
           [&::-webkit-slider-thumb]:appearance-none
           [&::-webkit-slider-thumb]:w-4

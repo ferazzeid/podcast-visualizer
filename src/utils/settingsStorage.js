@@ -18,6 +18,8 @@ export const defaultSettings = {
   visualizerSecondaryColor: '#a855f7',
   visualizerSize: 100,
   visualizerPosition: 'center',
+  sensitivity: 2, // gain: louder = higher range (0.5–4)
+  smoothness: 0.7, // 0 = responsive/jittery, 1 = smooth/slow (reflects intonation)
   
   // Logo
   logo: null,

@@ -33,7 +33,9 @@ function App() {
   }, [settings]) // For OBS overlay
     
   
-  // Audio analyzer hook
+  // Audio analyzer: sensitivity = range (louder = higher), smoothness = slower/smoother chart
+  const sensitivity = typeof settings.sensitivity === 'number' ? settings.sensitivity : 2
+  const smoothness = typeof settings.smoothness === 'number' ? settings.smoothness : 0.7
   const { 
     audioContext, 
     analyser, 
@@ -45,7 +47,7 @@ function App() {
     getFrequencyData, 
     getTimeDomainData,
     getAverageAmplitude 
-  } = useAudioAnalyzer()
+  } = useAudioAnalyzer(sensitivity, smoothness)
   
   // Auto-start mic in OBS mode
   useEffect(() => {
