@@ -197,7 +197,7 @@ export default function ControlPanel({
             value={typeof settings.sensitivity === 'number' ? settings.sensitivity : 2}
             onChange={(v) => updateSettings('sensitivity', v)}
             min={0.5}
-            max={4}
+            max={8}
             step={0.5}
           />
           <Slider

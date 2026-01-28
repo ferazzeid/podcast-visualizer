@@ -6,7 +6,8 @@
 export function drawWaveformGentle(ctx, timeDomainData, config) {
   const { centerX, centerY, width, height, color, secondaryColor, size } = config
   
-  const scaledHeight = height * size * 0.6 // Smaller amplitude
+  // Full range like original waveform so sensitivity actually moves the chart; keep smooth curves for style
+  const scaledHeight = height * size
   const points = []
   
   // Sample fewer points for smoother look
@@ -16,10 +17,8 @@ export function drawWaveformGentle(ctx, timeDomainData, config) {
   for (let i = 0; i < numPoints; i++) {
     const dataIndex = i * sampleRate
     const v = (timeDomainData[dataIndex] - 128) / 128
-    // Apply smoothing - reduce extreme values
-    const smoothedV = v * 0.6
     const x = centerX - width / 2 + (i / numPoints) * width
-    const y = centerY + smoothedV * scaledHeight / 2
+    const y = centerY + v * scaledHeight / 2
     points.push({ x, y })
   }
   
@@ -102,8 +101,9 @@ export function drawFlowingWave(ctx, timeDomainData, config) {
   }
   const avgAmplitude = (sum / timeDomainData.length) / 128
   
-  const baseAmplitude = height * 0.15 * size
-  const amplitude = baseAmplitude * (0.3 + avgAmplitude * 0.7)
+  // Full range so loud = visible wave; gentle style from slow time + soft gradients
+  const baseAmplitude = height * 0.4 * size
+  const amplitude = baseAmplitude * (0.15 + avgAmplitude * 0.85)
   
   // Draw multiple flowing waves
   for (let wave = 0; wave < 3; wave++) {

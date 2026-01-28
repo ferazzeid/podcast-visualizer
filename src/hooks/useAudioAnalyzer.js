@@ -75,10 +75,10 @@ export default function useAudioAnalyzer(sensitivity = 1, smoothness = 0.7) {
       
       const ctx = getOrCreateContext()
       
-      // Create analyser node (higher smoothing = less jitter in raw data; we add our own temporal smoothing)
+      // Create analyser node — moderate smoothing; we do attack/release in JS so raw can react to loud input
       const analyserNode = ctx.createAnalyser()
       analyserNode.fftSize = 256
-      analyserNode.smoothingTimeConstant = 0.7
+      analyserNode.smoothingTimeConstant = 0.5
       
       // Create microphone source
       const micSource = ctx.createMediaStreamSource(stream)
@@ -111,13 +111,13 @@ export default function useAudioAnalyzer(sensitivity = 1, smoothness = 0.7) {
     setAnalyser(null)
   }, [micStream])
   
-  // Alpha for EMA: smoothness 0 = reactive (alpha ~0.3), smoothness 1 = very smooth (alpha ~0.02)
-  const getAlpha = useCallback(() => {
+  // Attack: when input goes UP (louder) — fast so screaming actually moves the chart. Release: when going down — smooth (smoothness controls this).
+  const getAlphaDown = useCallback(() => {
     const sm = Math.max(0, Math.min(1, smoothnessRef.current))
-    return 0.02 + (1 - sm) * 0.28
+    return 0.03 + (1 - sm) * 0.25
   }, [])
 
-  // Get frequency data (for bars visualization): sensitivity = range (louder = higher), smoothness = slower/smoother movement
+  // Get frequency data: sensitivity = range (louder = higher). Fast attack when loud, smooth release when quiet.
   const getFrequencyData = useCallback(() => {
     if (!analyser || !frequencyDataRef.current) return new Uint8Array(128)
     analyser.getByteFrequencyData(frequencyDataRef.current)
@@ -127,17 +127,19 @@ export default function useAudioAnalyzer(sensitivity = 1, smoothness = 0.7) {
       smoothedFrequencyRef.current = new Float32Array(len)
     }
     const smoothed = smoothedFrequencyRef.current
-    const alpha = getAlpha()
+    const alphaDown = getAlphaDown()
+    const alphaUp = 0.45 // fast attack: chart rises quickly when you get loud
     const out = new Uint8Array(len)
     for (let i = 0; i < len; i++) {
       const rawScaled = Math.min(255, frequencyDataRef.current[i] * s)
+      const alpha = rawScaled > smoothed[i] ? alphaUp : alphaDown
       smoothed[i] = smoothed[i] * (1 - alpha) + rawScaled * alpha
       out[i] = Math.round(Math.max(0, Math.min(255, smoothed[i])))
     }
     return out
-  }, [analyser, getAlpha])
+  }, [analyser, getAlphaDown])
   
-  // Get time domain data (for waveform): sensitivity = range, smoothness = slower/smoother movement
+  // Get time domain data: fast attack when loud, smooth release when quiet
   const getTimeDomainData = useCallback(() => {
     if (!analyser || !timeDomainDataRef.current) return new Uint8Array(256)
     analyser.getByteTimeDomainData(timeDomainDataRef.current)
@@ -148,16 +150,18 @@ export default function useAudioAnalyzer(sensitivity = 1, smoothness = 0.7) {
       smoothedTimeDomainRef.current = new Float32Array(len)
     }
     const smoothed = smoothedTimeDomainRef.current
-    const alpha = getAlpha()
+    const alphaDown = getAlphaDown()
+    const alphaUp = 0.45
     const out = new Uint8Array(len)
     for (let i = 0; i < len; i++) {
       const v = timeDomainDataRef.current[i]
       const rawScaled = Math.max(0, Math.min(255, (v - center) * s + center))
+      const alpha = rawScaled > smoothed[i] ? alphaUp : alphaDown
       smoothed[i] = smoothed[i] * (1 - alpha) + rawScaled * alpha
       out[i] = Math.round(Math.max(0, Math.min(255, smoothed[i])))
     }
     return out
-  }, [analyser, getAlpha])
+  }, [analyser, getAlphaDown])
   
   // Get average amplitude (for pulsing effects); sensitivity already applied in getFrequencyData
   const getAverageAmplitude = useCallback(() => {

@@ -10,8 +10,8 @@ export function drawCircularBreathe(ctx, frequencyData, amplitude, config) {
   const { centerX, centerY, color, secondaryColor, size } = config
   
   const baseRadius = 120 * size
-  // Smooth, gentle pulse
-  const pulseAmount = amplitude * 25 * size
+  // Full range so loud = visible pulse; gentle style from soft gradients
+  const pulseAmount = amplitude * 55 * size
   const currentRadius = baseRadius + pulseAmount
   
   // Soft outer glow
@@ -89,7 +89,7 @@ export function drawOrbitalRings(ctx, frequencyData, amplitude, config) {
   ]
   
   rings.forEach((ring, index) => {
-    const expandedRadius = ring.radius + amplitude * 20 * size
+    const expandedRadius = ring.radius + amplitude * 50 * size
     const rotation = time * ring.speed
     
     ctx.save()
@@ -107,8 +107,8 @@ export function drawOrbitalRings(ctx, frequencyData, amplitude, config) {
     ctx.restore()
   })
   
-  // Center dot
-  const dotSize = 8 * size + amplitude * 10 * size
+  // Center dot - full range so loud = bigger
+  const dotSize = 8 * size + amplitude * 35 * size
   const dotGradient = ctx.createRadialGradient(
     centerX, centerY, 0,
     centerX, centerY, dotSize
@@ -140,16 +140,16 @@ export function drawSoftRipples(ctx, frequencyData, amplitude, config) {
     
     if (alpha > 0.05) {
       ctx.strokeStyle = (i % 2 === 0 ? color : secondaryColor) + Math.floor(alpha * 255).toString(16).padStart(2, '0')
-      ctx.lineWidth = (2 + amplitude * 3) * size * (1 - progress * 0.5)
+      ctx.lineWidth = (2 + amplitude * 8) * size * (1 - progress * 0.5)
       
       ctx.beginPath()
-      ctx.arc(centerX, centerY, radius + amplitude * 20, 0, Math.PI * 2)
+      ctx.arc(centerX, centerY, radius + amplitude * 50, 0, Math.PI * 2)
       ctx.stroke()
     }
   }
   
-  // Soft center
-  const centerSize = 30 * size + amplitude * 20 * size
+  // Soft center - full range
+  const centerSize = 30 * size + amplitude * 50 * size
   const centerGradient = ctx.createRadialGradient(
     centerX, centerY, 0,
     centerX, centerY, centerSize

@@ -9,9 +9,9 @@ export function drawMinimalCalm(ctx, amplitude, config) {
   
   const baseRadius = 60 * size
   
-  // Very subtle breathing effect
+  // Full range so loud = visible pulse; gentle style from soft glow
   const breathe = Math.sin(time) * 0.1 + 1
-  const pulseRadius = baseRadius * breathe + amplitude * 15 * size
+  const pulseRadius = baseRadius * breathe + amplitude * 40 * size
   
   // Soft outer glow
   const outerGlow = ctx.createRadialGradient(
@@ -69,7 +69,7 @@ export function drawFloatingDot(ctx, amplitude, config) {
   const dotY = centerY + floatY
   
   const baseSize = 25 * size
-  const dotSize = baseSize + amplitude * 20 * size
+  const dotSize = baseSize + amplitude * 40 * size
   
   // Soft halo
   const haloGradient = ctx.createRadialGradient(
@@ -107,7 +107,7 @@ export function drawLinePulse(ctx, amplitude, config) {
   const { centerX, centerY, width, color, secondaryColor, size } = config
   
   const lineWidth = width * 0.5
-  const pulseWidth = lineWidth * (0.3 + amplitude * 0.7)
+  const pulseWidth = lineWidth * (0.15 + amplitude * 0.85)
   
   // Main line
   const gradient = ctx.createLinearGradient(
@@ -136,7 +136,7 @@ export function drawLinePulse(ctx, amplitude, config) {
   ctx.shadowBlur = 0
   
   // End dots
-  const dotSize = 4 * size + amplitude * 4 * size
+  const dotSize = 4 * size + amplitude * 10 * size
   
   ctx.fillStyle = color
   ctx.beginPath()

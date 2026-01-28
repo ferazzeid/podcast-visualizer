@@ -11,7 +11,8 @@ export function drawBarsSmooth(ctx, frequencyData, config) {
   const totalWidth = width * 0.7
   const barWidth = (totalWidth / barCount) * 0.6
   const gap = (totalWidth / barCount) * 0.4
-  const maxHeight = height * size * 0.6
+  // Full range so sensitivity moves bars; gentle style from rounded bars + easing
+  const maxHeight = height * size
   
   // Sample and smooth the frequency data
   const step = Math.floor(frequencyData.length / barCount)
@@ -35,8 +36,8 @@ export function drawBarsSmooth(ctx, frequencyData, config) {
   
   for (let i = 0; i < barCount; i++) {
     const value = smoothedValues[i] / 255
-    // Apply easing for gentler movement
-    const easedValue = Math.pow(value, 0.8)
+    // Light easing for smooth look only; don't compress range
+    const easedValue = Math.pow(value, 0.9)
     const barHeight = Math.max(easedValue * maxHeight, 4)
     
     const x = startX + i * (barWidth + gap)
